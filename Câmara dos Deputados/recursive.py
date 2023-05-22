@@ -173,8 +173,17 @@ def reqPartidos(siglas: list = [], dataInicio: str = "", dataFim: str = "", idLe
     return lista_discursos_deputados_partidos
 
 init_time = time.time()
-requisicoes = reqPartidos(["PCdoB"], dataInicio="2016-02-01", dataFim="2016-02-15")
+requisicoes = reqPartidos(["PCdoB"],dataInicio="2019-06-01", dataFim="2019-06-15")
 end_time = time.time()
+discursos = []
+
+for partido in requisicoes:
+    for deputado in requisicoes[partido]:
+        for discurso in deputado:
+            print(discurso)
+            discursos.extend(deputado[discurso])
+
+print(len(discursos))
 print(requisicoes)
 
 diff_time = end_time - init_time
