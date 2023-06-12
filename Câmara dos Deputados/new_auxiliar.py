@@ -10,7 +10,7 @@ class Partido():
         self.nome = requisicao["nome"]
         self.uri = requisicao["uri"]
 
-    def to_list(self):
+    def to_list(self) -> list:
         """This method returns a list of the object Partido
         
         Parameters: None
@@ -19,7 +19,7 @@ class Partido():
         return [self.Id, self.sigla, self.nome, self.uri]
     
     @classmethod
-    def get_variables(cls):
+    def get_variables(cls) -> list:
         return ["Id", "sigla", "nome", "uri"]
 
 class Deputado():
