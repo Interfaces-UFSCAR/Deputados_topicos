@@ -2,6 +2,7 @@ import requests
 from requests.structures import CaseInsensitiveDict
 import urllib.parse
 import time
+import pandas as pd
 
 #Este código está utilizando as novas classes, que utilizam todas as informações presentes nas requisições que foram feitas anteriormente
 import new_auxiliar
@@ -16,10 +17,6 @@ def reqURL(s: requests.Session, url: str):
             retry_after = int(response.headers["retry-after"])
             time.sleep(retry_after)
     return response
-
-def checkResponse(response):
-    # Para checar se a resposta obtida é um JSON válido ou se é um HTML que serve como página de ERRO, isso pode acontecer
-    pass
 
 def reqDiscursos(deputado: int, idLegislatura: list = [], dataInicio: str = "", dataFim: str = "", ordenarPor: str = "dataHoraInicio", ordem: str = "ASC") -> list:
     url_list = []
@@ -91,7 +88,7 @@ def reqMembros(idPartido: int, dataInicio: str = "", dataFim: str = "", idLegisl
         params["ordenarPor"] = ordenarPor
     
     params["ordem"] = ordem
-    #print(params)
+    #print(params.head())
     query = urllib.parse.urlencode(params, doseq=True)
     if query != '':
         url_list.append("?")
@@ -119,7 +116,7 @@ def reqMembros(idPartido: int, dataInicio: str = "", dataFim: str = "", idLegisl
     lista_discursos_deputados = []
     for deputado in lista_deputados:
         lista_discursos_deputados.append({deputado :reqDiscursos(deputado=deputado.Id, idLegislatura=idLegislatura, dataInicio=dataInicio, dataFim=dataFim, ordenarPor=ordenarPor, ordem=ordem)})
-        time.sleep(5)
+        #time.sleep(5)
     return lista_discursos_deputados
 
 def reqPartidos(siglas: list = [], dataInicio: str = "", dataFim: str = "", idLegislatura: list = [], ordem: str = "ASC", ordenarPor: str = "sigla", ordenarPorDiscursos: str = ""):
@@ -171,7 +168,33 @@ def reqPartidos(siglas: list = [], dataInicio: str = "", dataFim: str = "", idLe
         lista_discursos_deputados_partidos[partido] = reqMembros(idPartido=partido.Id, dataInicio=dataInicio, dataFim=dataFim, idLegislatura=idLegislatura, ordenarPor=ordenarPorDiscursos, ordem=ordem)
     return lista_discursos_deputados_partidos
 
-init_time = time.time()
-requisicoes = reqPartidos(["PCdoB"],dataInicio="2019-06-01", dataFim="2019-06-15")
-end_time = time.time()
-print(requisicoes)
+def partidoToDataFrame(estrutura: dict) -> pd.DataFrame:
+    list_df = []
+    for partido in estrutura:
+        for dict_deputado in estrutura[partido]:
+            for deputado in dict_deputado:
+                for discurso in dict_deputado[deputado]:
+                    linha = partido.to_list() + deputado.to_list() + discurso.to_list()
+                    list_df.append(linha)
+
+    
+    
+    columns = new_auxiliar.Partido.get_variables() + new_auxiliar.Deputado.get_variables() + new_auxiliar.Discurso.get_variables()
+    #print(list_df)
+    #print(columns)
+    #input()
+    df = pd.DataFrame(data=list_df, columns=columns)
+    return df
+
+def main():
+    init_time = time.time()
+    requisicoes = reqPartidos(siglas=["PT"], dataInicio="2019-06-02", dataFim="2019-06-15")
+    end_time = time.time()
+    #print(requisicoes)
+    print(end_time - init_time)
+    df = partidoToDataFrame(requisicoes)
+    print(df.shape)
+    df.to_csv("discursos.csv")
+
+if __name__ == "__main__":
+    main()
