@@ -8,6 +8,7 @@ import pandas as pd
 import new_auxiliar
 
 def reqURL(s: requests.Session, url: str):
+    """Faz a requisição para uma URL, tratando algumas situações que podem ocorrer, rodando até que a URL responda"""
     _not_got = True
     while _not_got:
         response = s.get(url)
@@ -19,6 +20,7 @@ def reqURL(s: requests.Session, url: str):
     return response
 
 def reqDiscursos(deputado: int, idLegislatura: list = [], dataInicio: str = "", dataFim: str = "", ordenarPor: str = "dataHoraInicio", ordem: str = "ASC") -> list:
+    """Faz a requisção dos discursos de um determinado Deputado baseado no ID do Deputado"""
     url_list = []
     resps = []
     url_base = "https://dadosabertos.camara.leg.br/api/v2/deputados/{id}/discursos"
@@ -69,6 +71,7 @@ def reqDiscursos(deputado: int, idLegislatura: list = [], dataInicio: str = "", 
     return lista_discursos
 
 def reqMembros(idPartido: int, dataInicio: str = "", dataFim: str = "", idLegislatura: list = [], ordenarPor: str = "", ordem: str = "ASC") -> list:
+    """Faz as requisições dos discursos dos membros de um partido baseado no ID do partido"""
     url_list = []
     resps = []
     url_base = "https://dadosabertos.camara.leg.br/api/v2/partidos/{id}/membros"
@@ -120,6 +123,7 @@ def reqMembros(idPartido: int, dataInicio: str = "", dataFim: str = "", idLegisl
     return lista_discursos_deputados
 
 def reqPartidos(siglas: list = [], dataInicio: str = "", dataFim: str = "", idLegislatura: list = [], ordem: str = "ASC", ordenarPor: str = "sigla", ordenarPorDiscursos: str = ""):
+    "Faz a requisição dos discursos dos membros de um ou mais partidos, baseando-se nas siglas dos Partidos"
     url_list = []
     resps = []
     url_base = "https://dadosabertos.camara.leg.br/api/v2/partidos"
@@ -169,6 +173,7 @@ def reqPartidos(siglas: list = [], dataInicio: str = "", dataFim: str = "", idLe
     return lista_discursos_deputados_partidos
 
 def partidoToDataFrame(estrutura: dict) -> pd.DataFrame:
+    """Transforma a estrutura das requisições de partidos no formato de um CSV onde cada linha é um discurso"""
     list_df = []
     for partido in estrutura:
         for dict_deputado in estrutura[partido]:
@@ -180,21 +185,18 @@ def partidoToDataFrame(estrutura: dict) -> pd.DataFrame:
     
     
     columns = new_auxiliar.Partido.get_variables() + new_auxiliar.Deputado.get_variables() + new_auxiliar.Discurso.get_variables()
-    #print(list_df)
-    #print(columns)
-    #input()
     df = pd.DataFrame(data=list_df, columns=columns)
     return df
 
 def main():
     init_time = time.time()
-    requisicoes = reqPartidos(siglas=["PT"], dataInicio="2019-06-02", dataFim="2019-06-15")
+    requisicoes = reqPartidos(siglas=["PL"], dataInicio="2019-06-02", dataFim="2019-07-02")
     end_time = time.time()
     #print(requisicoes)
     print(end_time - init_time)
     df = partidoToDataFrame(requisicoes)
     print(df.shape)
-    df.to_csv("discursos.csv")
+    df.to_csv("discursos_PL.csv")
 
 if __name__ == "__main__":
     main()
