@@ -20,7 +20,7 @@ class Partido():
     
     @classmethod
     def get_variables(cls) -> list:
-        return ["Id", "sigla", "nome", "uri"]
+        return ["IdPartido", "sigla", "nome", "uri"]
 
 class Deputado():
     def __init__(self, requisicao) -> None:
@@ -44,7 +44,7 @@ class Deputado():
     
     @classmethod
     def get_variables(cls):
-        return ["Id", "uri", "nome", "siglaPartido", "uriParitdo", "siglaUf", "idLegislatura", "urlFoto", "email"]
+        return ["IdDeputado", "uri", "nome", "siglaPartido", "uriParitdo", "siglaUf", "idLegislatura", "urlFoto", "email"]
 
 class faseEvento():
     def __init__(self, requisicao) -> None:
@@ -78,14 +78,3 @@ class Discurso():
     @classmethod
     def get_variables(cls):
         return ["dataHoraFim", "dataHoraInicio", "faseVento.dataHoraFim", "faseEvento.dataHoraInicio", "faseEvento.titulo", "keywords", "sumario", "tipoDiscurso", "transcricao", "uriEvento", "urlAudio", "urlTexto", "urlVideo"]
-
-def to_csv(estrutura, directory = None):
-    lista_partidos = [partido.to_list() for partido in estrutura]
-    df_partidos = pd.DataFrame(data=lista_partidos, columns=Partido.get_variables())
-    if directory == None:
-        path = ""
-    else:
-        path = directory
-    df_partidos.to_csv(path+"/partidos.csv")
-    del def_partidos
-    
