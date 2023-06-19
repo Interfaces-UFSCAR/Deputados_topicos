@@ -181,8 +181,6 @@ def partidoToDataFrame(estrutura: dict) -> pd.DataFrame:
                 for discurso in dict_deputado[deputado]:
                     linha = partido.to_list() + deputado.to_list() + discurso.to_list()
                     list_df.append(linha)
-
-    
     
     columns = new_auxiliar.Partido.get_variables() + new_auxiliar.Deputado.get_variables() + new_auxiliar.Discurso.get_variables()
     df = pd.DataFrame(data=list_df, columns=columns)
