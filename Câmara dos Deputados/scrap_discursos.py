@@ -43,8 +43,7 @@ def reqDiscursos(deputado: int, idLegislatura: list = [], dataInicio: str = "", 
     params["ordem"] = ordem
 
     query = urllib.parse.urlencode(params, doseq=True)
-    if query != '':
-        url_list.append("?")
+    url_list.append("?")
     url_list.append(query)
     url_id = ''.join(url_list)
 
@@ -91,10 +90,8 @@ def reqMembros(idPartido: int, dataInicio: str = "", dataFim: str = "", idLegisl
         params["ordenarPor"] = ordenarPor
     
     params["ordem"] = ordem
-    #print(params.head())
     query = urllib.parse.urlencode(params, doseq=True)
-    if query != '':
-        url_list.append("?")
+    url_list.append("?")
     url_list.append(query)
     url_id = ''.join(url_list)
     headers = CaseInsensitiveDict()
@@ -143,8 +140,7 @@ def reqPartidos(siglas: list = [], dataInicio: str = "", dataFim: str = "", idLe
     params["ordenarPor"] = ordenarPor
     params["ordem"] = ordem
     query = urllib.parse.urlencode(params, doseq=True)
-    if query != "":
-        url_list.append("?")
+    url_list.append("?")
     url_list.append(query)
     url = ''.join(url_list)
 
