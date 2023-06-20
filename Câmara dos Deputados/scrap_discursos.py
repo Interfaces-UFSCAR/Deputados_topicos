@@ -7,8 +7,9 @@ import pandas as pd
 #Este código está utilizando as novas classes, que utilizam todas as informações presentes nas requisições que foram feitas anteriormente
 import new_auxiliar
 
-def reqURL(s: requests.Session, url: str):
-    """Faz a requisição para uma URL, tratando algumas situações que podem ocorrer, rodando até que a URL responda"""
+def reqURL(s: requests.Session, url: str) -> requests.Response:
+    """Resquests a certain URL using the given Session that is being used.
+    The function does not return until the URL responses, what can make the function run forever. if there is any problem with the URL being requested"""
     _not_got = True
     while _not_got:
         response = s.get(url)
