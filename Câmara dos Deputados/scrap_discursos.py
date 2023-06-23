@@ -20,7 +20,7 @@ def reqURL(s: requests.Session, url: str) -> requests.Response:
             time.sleep(retry_after)
     return response
 
-def reqDiscursos(deputado: int, idLegislatura: list = [], dataInicio: str = "", dataFim: str = "", ordenarPor: str = "dataHoraInicio", ordem: str = "ASC") -> list:
+def reqDiscursos(deputado: int, s: requests.Session, idLegislatura: list = [], dataInicio: str = "", dataFim: str = "", ordenarPor: str = "dataHoraInicio", ordem: str = "ASC") -> list:
     """Faz a requisção dos discursos de um determinado Deputado baseado no ID do Deputado"""
     url_list = []
     resps = []
@@ -50,10 +50,6 @@ def reqDiscursos(deputado: int, idLegislatura: list = [], dataInicio: str = "", 
 
     url = url_id.format(id=deputado)
     i = 0
-    headers = CaseInsensitiveDict()
-    headers["accept"] = "application/json"
-    s = requests.Session()
-    s.headers.update(headers)
     response = reqURL(s=s, url=url)
     resps.append(response)
 
@@ -70,7 +66,7 @@ def reqDiscursos(deputado: int, idLegislatura: list = [], dataInicio: str = "", 
             pass
     return lista_discursos
 
-def reqMembros(idPartido: int, dataInicio: str = "", dataFim: str = "", idLegislatura: list = [], ordenarPor: str = "", ordem: str = "ASC") -> list:
+def reqMembros(idPartido: int, s: requests.Session, dataInicio: str = "", dataFim: str = "", idLegislatura: list = [], ordenarPor: str = "", ordem: str = "ASC") -> list:
     """Faz as requisições dos discursos dos membros de um partido baseado no ID do partido"""
     url_list = []
     resps = []
@@ -95,11 +91,6 @@ def reqMembros(idPartido: int, dataInicio: str = "", dataFim: str = "", idLegisl
     url_list.append("?")
     url_list.append(query)
     url_id = ''.join(url_list)
-    headers = CaseInsensitiveDict()
-    headers["accept"] = "application/json"
-    s = requests.Session()
-    s.headers.update(headers)
-
     url = url_id.format(id = idPartido)
     i = 0
     response = reqURL(s=s, url=url)
@@ -116,7 +107,7 @@ def reqMembros(idPartido: int, dataInicio: str = "", dataFim: str = "", idLegisl
         lista_deputados.extend(list(map(new_auxiliar.Deputado, i.json()["dados"])))
     lista_discursos_deputados = []
     for deputado in lista_deputados:
-        lista_discursos_deputados.append({deputado :reqDiscursos(deputado=deputado.Id, idLegislatura=idLegislatura, dataInicio=dataInicio, dataFim=dataFim, ordenarPor=ordenarPor, ordem=ordem)})
+        lista_discursos_deputados.append({deputado :reqDiscursos(deputado=deputado.Id, s=s, idLegislatura=idLegislatura, dataInicio=dataInicio, dataFim=dataFim, ordenarPor=ordenarPor, ordem=ordem)})
         #time.sleep(5)
     return lista_discursos_deputados
 
@@ -166,7 +157,7 @@ def reqPartidos(siglas: list = [], dataInicio: str = "", dataFim: str = "", idLe
         partidos.extend(list(map(new_auxiliar.Partido, resp.json()["dados"])))
     lista_discursos_deputados_partidos = {}
     for partido in partidos:
-        lista_discursos_deputados_partidos[partido] = reqMembros(idPartido=partido.Id, dataInicio=dataInicio, dataFim=dataFim, idLegislatura=idLegislatura, ordenarPor=ordenarPorDiscursos, ordem=ordem)
+        lista_discursos_deputados_partidos[partido] = reqMembros(idPartido=partido.Id, s=s, dataInicio=dataInicio, dataFim=dataFim, idLegislatura=idLegislatura, ordenarPor=ordenarPorDiscursos, ordem=ordem)
     return lista_discursos_deputados_partidos
 
 def partidoToDataFrame(estrutura: dict) -> pd.DataFrame:
