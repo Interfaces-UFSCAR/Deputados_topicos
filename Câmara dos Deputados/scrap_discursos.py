@@ -69,7 +69,6 @@ def reqDiscursos(deputado: int, s: requests.Session, idLegislatura: list = [], d
 def reqMembros(idPartido: int, s: requests.Session, dataInicio: str = "", dataFim: str = "", idLegislatura: list = [], ordenarPor: str = "", ordem: str = "ASC") -> list:
     """Faz as requisições dos discursos dos membros de um partido baseado no ID do partido"""
     url_list = []
-    resps = []
     url_base = "https://dadosabertos.camara.leg.br/api/v2/partidos/{id}/membros"
     url_list.append(url_base)
     params = {}
@@ -94,17 +93,17 @@ def reqMembros(idPartido: int, s: requests.Session, dataInicio: str = "", dataFi
     url = url_id.format(id = idPartido)
     i = 0
     response = reqURL(s=s, url=url)
-    resps.append(response)
 
-    while "next" in resps[i].links:
+    # Não é necessário nesse momento a realização da checagem dos valores next, isto acontece pelo fato de que este endpoint não está utiliizando o valor 'itens'
+    # Por isso não é necessário realizar toda esta lógica response já possui todas as respostas necessária
+
+    """while "next" in resps[i].links:
         url = resps[i].links["next"]["url"]
         response = reqURL(s=s, url=url)
         resps.append(response)
-        i += 1
-    lista_deputados = []
+        i += 1"""
+    lista_deputados = list(map(new_auxiliar.Deputado, response.json()["dados"]))
 
-    for i in resps:
-        lista_deputados.extend(list(map(new_auxiliar.Deputado, i.json()["dados"])))
     lista_discursos_deputados = []
     for deputado in lista_deputados:
         lista_discursos_deputados.append({deputado :reqDiscursos(deputado=deputado.Id, s=s, idLegislatura=idLegislatura, dataInicio=dataInicio, dataFim=dataFim, ordenarPor=ordenarPor, ordem=ordem)})
@@ -124,6 +123,9 @@ def reqPartidos(siglas: list = [], dataInicio: str = "", dataFim: str = "", idLe
         params["sigla"] = siglas
 
     if dataInicio is not reqPartidos.__defaults__[1]:
+        params["dataInicio"] = dataInicio
+
+    if dataFim is not reqPartidos.__defaults__[2]:
         params["dataFim"] = dataFim
 
     if idLegislatura is not reqPartidos.__defaults__[3]:
