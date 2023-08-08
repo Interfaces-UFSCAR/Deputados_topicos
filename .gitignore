@@ -128,5 +128,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Próprios do autor
 discursos/
 topics/
+metricas/
