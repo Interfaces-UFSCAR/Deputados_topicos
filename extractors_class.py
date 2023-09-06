@@ -15,6 +15,9 @@ import pbg
 
 class extractor():
     def __init__(self, discursos, partidos, n_components) -> None:
+        """Father class of bow_lda and tfidf_pbg. The methods in here are for most NOT implemented. 
+        Trying to call topic extraction methods on this class will result on NotImplementedError.
+        This class only implements preprocessing text methods once those are common to both classes."""
         stop_words_path = pathlib.Path("./stop_words.txt")
         self.discursos = [preprocess(discurso) for discurso in discursos]
         self.n_components = n_components
@@ -24,19 +27,34 @@ class extractor():
         self.treated = False
         self.partidos = partidos
 
-    def process_text(self):
+    def process_text(self, allowed_postags:list[str] = ["NOUN", "ADJ", "ADV", "VERB", "PUNCT"]) -> None:
+        """This method processes the text before it can enter the process of vectorizing the texts.
+        Parameters:
+            allowed_postags:Says which type of postags are permitted. The types are:
+            * Noun (NOUN),
+            * Adjective (ADJ),
+            * Adverb (ADV),
+            * Verb (VERB),
+            * Punctuation (PUNCT)
+        Returns:
+            None. To get threated discursos use get_processed_text method"""
         if self.treated == True:
             return
         self.nlp = spacy.load("pt_core_news_lg")
-        lemmatized_discursos = self.lemmatization()
+        lemmatized_discursos = self.lemmatization(allowed_postags=allowed_postags)
         discursos_lower = [[discurso.lower() for discurso in discursos] for discursos in lemmatized_discursos]
         discursos_tokenized = [[nltk.word_tokenize(discurso) for discurso in discursos] for discursos in discursos_lower]
         treated_discursos = [self.__remove_stop_words_punct(discursos) for discursos in discursos_tokenized]
         self.treated_discursos = treated_discursos
         self.treated = True # Esta implementação ainda está ineficiente e não contempla chamar as funções de modo separado
     
-    def lemmatization(self):
-        lemmatized_discursos = [self.__lemmatization(discursos, self.nlp, allowed_postags=["NOUN", "ADJ", "ADV", "VERB", "PUNCT"]) for discursos in self.discursos]
+    def get_processed_text(self):
+        """Função para não ter que tratar o texto 2 vezes caso esteja-se realizando a extração com LDA e PBG"""
+        if self.treated:
+            return self.treated_discursos;
+    
+    def lemmatization(self, allowed_postags):
+        lemmatized_discursos = [self.__lemmatization(discursos, self.nlp, allowed_postags=allowed_postags) for discursos in self.discursos]
         return lemmatized_discursos
     
     def __lemmatization(self, texts: list[str], nlp, allowed_postags = ["NOUN", "ADJ", "VERB", "ADV"]):
@@ -66,10 +84,17 @@ class extractor():
 
 class bow_lda(extractor):
     def __init__(self, discursos: list[list[str]], partidos: list[str], n_components: int) -> None:
+        """Creates an topic extractor to use BoW and LDA to extract topics"""
         super().__init__(discursos, partidos, n_components)
         self.vectorizer = sklearntext.CountVectorizer(analyzer="word", stop_words=None, lowercase=True)
     
     def topic_extraction(self, n_words):
+        """Extracts topics from preprocessed texts utilizing LDA.
+        Parameters:
+            n_words: Number of words that should be saved at each topic.
+        Returns:
+            None.
+        Be careful, this method consumes large amount of working memory, so do not try to use it with huge datasets on limited RAM machines (RAM < 8GB does not work for 14000+ speeches, empirically tested)"""
         self.lda_models = [self.__lda_transform_fit(data_vectorized_) for data_vectorized_ in self.data_vectorized]
         topics_keywords_lst = [self.__transform_topics(feature_name, self.lda_models[i].components_, n_words) for i, feature_name in enumerate(self.feature_names)]
         self.topics_keywords = [pd.DataFrame(topics_keywords) for topics_keywords in topics_keywords_lst]
@@ -90,6 +115,7 @@ class bow_lda(extractor):
             df.to_csv(topics_path)
 
     def data_vectorizer(self):
+        """Vectorized the data in the class to create a Bow Matrix of each party."""
         data_vectorized = []
         feature_names = []
         for discursos_ in self.treated_discursos:
@@ -119,10 +145,16 @@ class bow_lda(extractor):
     
 class tfidf_pbg(extractor):
     def __init__(self, discursos: list[list[str]], partidos: list[str], n_components: int) -> None:
+        """Creates a topic extractor to use TF-IDF and PBG."""
         super().__init__(discursos, partidos, n_components)
         self.vectorizer = sklearntext.TfidfVectorizer()
 
     def data_vectorizer(self):
+        """Vectorize data to create a TF-IDF matrix that will be used to extract topics.
+        Parameters:
+            None.
+        Returns:
+            None."""
         data_vectorized = []
         feature_names = []
         for discursos_ in self.treated_discursos:
@@ -138,6 +170,11 @@ class tfidf_pbg(extractor):
         return matrix_discursos, feature_names
     
     def topic_extraction(self, n_words):
+        """This function extracts the topics from a corpus of data preprocessed and vectorized utilizing PBG algorithm.
+        Parameters:
+            n_words: Number of words to be extracted at each topic
+        Returns:
+            None. Saves the topics at self.topics_keywords as a list of Dataframes."""
         self.pbg = [pbg.PBG(n_components=self.n_components, feature_names=feature_name, save_interval=1) for feature_name in self.feature_names]
         topics_discursos = []
         for i, data_vectorized in enumerate(self.data_vectorized):
@@ -172,13 +209,29 @@ def main():
         partidos.extend(df["sigla"].unique().tolist())
         discursos.append(df["transcricao"].tolist())
 
-    save_path = pathlib.Path("./topics/pbg/pos_pandemia/")
-
-    pbg = tfidf_pbg(discursos=discursos, partidos=partidos, n_components=10)
+    pbg = bow_lda(discursos=discursos, partidos=partidos, n_components=10)
     pbg.process_text()
     pbg.data_vectorizer()
     pbg.topic_extraction(10)
     pbg.to_csv(save_path)
 
+def main_oposicao():
+    path_reading = pathlib.Path("./discursos/legis_56/governista/")
+    save_path = pathlib.Path("./topics/pbg/legis56/governista_unico_sem_adj_adv/")
+    files = path_reading.iterdir()
+    df_list = [pd.read_csv(file) for file in files]
+    partidos = ["governista"] # Partido "governista"
+    discursos = []
+    for df in df_list:
+        discursos.extend(df["transcricao"].tolist()) # Faz com que os discursos sejam interpretados como os discursos de um único partido
+
+    discursos = [discursos] # O algoritmo espera receber [[discursosA], [discursosB],...], nesse caso tem-se somente uma lista de discursos
+    
+    lda = tfidf_pbg(discursos=discursos, partidos=partidos, n_components=30)
+    lda.process_text(allowed_postags=["NOUN","VERB", "PUNCT"])
+    lda.data_vectorizer()
+    lda.topic_extraction(n_words=20)
+    lda.to_csv(save_path)
+
 if __name__ == "__main__":
-    main()
+    main_oposicao()
