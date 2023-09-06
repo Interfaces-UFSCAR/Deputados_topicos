@@ -1,5 +1,4 @@
 import pandas as pd
-from preprocess import preprocess
 from nltk.corpus import stopwords
 import string
 import pathlib
@@ -8,13 +7,13 @@ import nltk
 import spacy
 import time
 
-import preprocess
+from preprocess import preprocess
 
 class DBAnalyzer():
     def __init__(self, ll_discursos: list[list[str]], partidos: list[str]) -> None:
-        self.stop_words = set(pathlib.Path("./stop_words.txt").read_text("utf-8").splitlines())
-        self.stop_words.update(stopwords.words("portuguese"))
-        self.discursos = ll_discursos
+        self.stop_words = set(stopwords.words("portuguese"))
+        self.stop_words.update(pathlib.Path("./stop_words.txt").read_text("utf-8").splitlines())
+        self.discursos = [preprocess(discursos) for discursos in ll_discursos]
         self.partidos = partidos
         self.words_diff = None
 
@@ -106,7 +105,7 @@ class DBAnalyzer():
     
 def main():
     path = pathlib.Path("./discursos/")
-    path_pre_pos = pathlib.Path("./pos_pandemia/")
+    path_pre_pos = pathlib.Path("./pre_pandemia/")
     path = path.joinpath(path_pre_pos)
     files = path.iterdir()
     df_list = [pd.read_csv(file) for file in files]
@@ -126,5 +125,26 @@ def main():
     metricas_path.mkdir(parents=True, exist_ok=True)
     dados.to_csv(pathlib.Path.joinpath(metricas_path.joinpath(path_pre_pos), "metricas.csv"))
     
+def main_orientacao():
+    path = pathlib.Path("./discursos/legis_56/")
+    path_gov_opo = pathlib.Path("./governista/")
+    path = path.joinpath(path_gov_opo)
+    files = path.iterdir()
+    df_list = [pd.read_csv(file) for file in files]
+    partidos = []
+    discursos = []
+    for df in df_list:
+        partidos.extend(df["sigla"].unique().tolist())
+        discursos.append(df["transcricao"].tolist())
+
+    analyzer = DBAnalyzer(ll_discursos=discursos, partidos=partidos)
+    print("Tratando discursos")
+    analyzer.treat_discursos()
+    print("Calculando ...")
+    dados = analyzer.calculate()
+    metricas_path = pathlib.Path("./metricas/legis_56/").joinpath(path_gov_opo)
+    metricas_path.mkdir(parents=True, exist_ok=True)
+    dados.to_csv(pathlib.Path.joinpath(metricas_path, "metricas.csv"))
+
 if __name__ == "__main__":
     main()
