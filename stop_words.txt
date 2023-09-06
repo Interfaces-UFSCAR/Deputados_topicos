@@ -10,6 +10,8 @@ art
 presidente
 brasil
 ter
+ano
+poder
 ``
 ''
 "
