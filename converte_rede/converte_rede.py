@@ -96,6 +96,31 @@ def main_partido():
     
     plt.savefig("PT_PBG_graph.pdf")
 
+def main_orientacao():
+    files_path = list(pathlib.Path("./topics/lda/legis56/oposição/").iterdir())
+
+    files = [pd.read_csv(file) for file in files_path]
+    converters = [Converter().convert_to_edge_list(topicos) for topicos in files]
+
+    edge_list = [converter.edgelist for converter in converters]
+    edge_list = pd.concat(edge_list)
+    agg_fun = {"size": "sum"}
+    edge_list = edge_list.groupby(edge_list.columns.tolist(), as_index=False).aggregate(agg_fun) # Sum repeating edges summing "size" column
+    edge_list.columns = ["From", "To", "weight"]
+
+    G = nx.from_pandas_edgelist(edge_list,"From", "To", edge_attr="weight")
+
+    pos = nx.layout.spring_layout(G=G, iterations=25, k=0.2, scale=2)
+
+    nx.draw(G, 
+            pos=pos, 
+            edge_color="gainsboro", 
+            node_size=4, 
+            font_size=2,
+            width=0.1,
+            with_labels=True)
+    plt.savefig("grafo_oposição.pdf")
+
 def main():
     files_path = list(pathlib.Path("./topics/lda/pos_pandemia").iterdir())
 #    file_names = [path.name for path in files_path] # somente usável eu for fazer as polaridades através de regex
@@ -123,7 +148,7 @@ def main():
     G = nx.from_pandas_edgelist(edge_list, "From", "To", edge_attr="weight")
     words_unique = words_unique.reindex(G.nodes())
 
-    pos = nx.layout.spring_layout(G, k=3, iterations=1000, threshold=1e-5)
+    pos = nx.layout.spring_layout(G, k=3, iterations=1000, threshold=1e-6)
 
     nx.draw(G, with_labels=True, 
             node_color=words_unique["Peso"].astype(int), 
