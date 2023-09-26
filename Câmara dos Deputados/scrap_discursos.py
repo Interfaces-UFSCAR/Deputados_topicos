@@ -174,6 +174,8 @@ def partidoToDataFrame(estrutura: dict) -> pd.DataFrame:
     
     columns = new_auxiliar.Partido.get_variables() + new_auxiliar.Deputado.get_variables() + new_auxiliar.Discurso.get_variables()
     df = pd.DataFrame(data=list_df, columns=columns)
+    df = df.drop_duplicates(subset=["dataHoraFim", "dataHoraInicio", "faseVento.dataHoraFim", "faseEvento.dataHoraInicio", "faseEvento.titulo", "keywords", "sumario", "tipoDiscurso", "transcricao", "uriEvento", "urlAudio", "urlTexto", "urlVideo"])
+    # Necessário o drop_duplicates pelo fato de que eu não sei o por que existem alguns deputados que estão com versões iguais, a única coisa diferente é o nome, onde um é "DEPUTADO MAIÚSCULO" e o outro é "Deputado Maiúsculo"
     return df
 
 def main():
