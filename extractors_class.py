@@ -199,8 +199,9 @@ class tfidf_pbg(extractor):
             df.to_csv(topics_path)
 
 def main():
-    path_reading = pathlib.Path("./discursos/pos_pandemia/")
-    save_path = pathlib.Path("./topics/lda/pos_pandemia/")
+    path_reading = pathlib.Path("./discursos/legis_56/p_novo/2022/")
+    save_path_lda = pathlib.Path("./topics/lda/legis_56/p_novo/2022/")
+    save_path_pbg = pathlib.Path("./topics/pbg/legis_56/p_novo/2022/")
     files = path_reading.iterdir()
     df_list = [pd.read_csv(file) for file in files]
     partidos = []
@@ -209,29 +210,55 @@ def main():
         partidos.extend(df["sigla"].unique().tolist())
         discursos.append(df["transcricao"].tolist())
 
-    pbg = bow_lda(discursos=discursos, partidos=partidos, n_components=10)
-    pbg.process_text()
-    pbg.data_vectorizer()
-    pbg.topic_extraction(10)
-    pbg.to_csv(save_path)
+    lda = bow_lda(discursos=discursos, partidos=partidos, n_components=12)
+    print("Processando LDA")
+    lda.process_text()
+    lda.data_vectorizer()
+    print("Extraindo lDA")
+    lda.topic_extraction(15)
+    print("Salvando LDA")
+    lda.to_csv(save_path_lda)
+    
+    treated_discursos =  lda.get_processed_text()
+
+    del lda
+
+    pbg_ex = tfidf_pbg(discursos=discursos, partidos=partidos, n_components=12)
+    print("Processando PBG")
+    pbg_ex.treated_discursos = treated_discursos
+    pbg_ex.data_vectorizer()
+    print("Extraindo PBG")
+    pbg_ex.topic_extraction(15)
+    print("Salvando PBG")
+    pbg_ex.to_csv(save_path_pbg)
 
 def main_oposicao():
-    path_reading = pathlib.Path("./discursos/legis_56/governista/")
-    save_path = pathlib.Path("./topics/pbg/legis56/governista_unico_sem_adj_adv/")
+    path_reading = pathlib.Path("./discursos/legis_56/oposição/2019/")
+    save_path_lda = pathlib.Path("./topics/lda/legis56/oposição/2019/")
+    save_path_pbg = pathlib.Path("./topics/pbg/legis_56/oposição/2019/")
     files = path_reading.iterdir()
     df_list = [pd.read_csv(file) for file in files]
-    partidos = ["governista"] # Partido "governista"
+    partidos = ["oposição"] # Partido "governista"
     discursos = []
     for df in df_list:
         discursos.extend(df["transcricao"].tolist()) # Faz com que os discursos sejam interpretados como os discursos de um único partido
 
     discursos = [discursos] # O algoritmo espera receber [[discursosA], [discursosB],...], nesse caso tem-se somente uma lista de discursos
     
-    lda = tfidf_pbg(discursos=discursos, partidos=partidos, n_components=30)
+    lda = bow_lda(discursos=discursos, partidos=partidos, n_components=30)
     lda.process_text(allowed_postags=["NOUN","VERB", "PUNCT"])
     lda.data_vectorizer()
     lda.topic_extraction(n_words=20)
-    lda.to_csv(save_path)
+    lda.to_csv(save_path_lda)
+    treated_texts = lda.get_processed_text()
+
+    del lda
+
+    pbg_ex = tfidf_pbg(discursos=discursos, partidos=partidos, n_components=30)
+    pbg_ex.treated_discursos = treated_texts
+    pbg_ex.data_vectorizer()
+    pbg_ex.topic_extraction(20)
+    pbg_ex.to_csv(save_path_pbg)
 
 if __name__ == "__main__":
-    main_oposicao()
+    main()
