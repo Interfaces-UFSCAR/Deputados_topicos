@@ -5,11 +5,11 @@ import time
 """Com a implementação atual, a pasta onde os arquivos serão armazenados seré criada na pasta onde o script estã sendo executado e consequentemente os discursos serão armazenados
 Isto pode gerar sérios problemas dependendo do ambinte executado"""
 def main():
-    partidos = pathlib.Path("./partidos.txt").read_text(encoding="utf-8").splitlines()
-    dataInicio = "2021-06-02"
-    dataFim = "2021-07-02"
+    partidos = ["NOVO"]
+    dataInicio = "2022-01-01"
+    dataFim = "2022-12-31"
 
-    path_root = pathlib.Path("./discursos/pos_pandemia")
+    path_root = pathlib.Path("./discursos/legis_56/p_novo/2022/")
     path_root.mkdir(parents=True, exist_ok=True)
 
     init_time = time.time()
