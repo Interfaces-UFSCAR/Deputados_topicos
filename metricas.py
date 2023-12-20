@@ -86,7 +86,7 @@ class DBAnalyzer():
             for word in words_count:
                 count_word = discurso_split.count(word)
                 words_count[word] += count_word
-        most_common = max(words_count, key=words_count.get)
+        most_common = max(words_count, key=lambda word: word.get)
         return most_common
     
     def calculate(self) -> pd.DataFrame:
