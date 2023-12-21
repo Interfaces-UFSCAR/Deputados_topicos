@@ -1,3 +1,10 @@
+'''
+This module has the responsable functions for retrieving the data from the API.
+'''
+
+
+import urllib.parse
+import time
 import requests
 from requests.structures import CaseInsensitiveDict
 import urllib.parse
