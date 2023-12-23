@@ -7,16 +7,15 @@ import urllib.parse
 import time
 import requests
 from requests.structures import CaseInsensitiveDict
-import urllib.parse
-import time
 import pandas as pd
 
-#Este código está utilizando as novas classes, que utilizam todas as informações presentes nas requisições que foram feitas anteriormente
 import new_auxiliar
 
-def reqURL(s: requests.Session, url: str) -> requests.Response:
+
+def req_url(s: requests.Session, url: str) -> requests.Response:
     """Resquests a certain URL using the given Session that is being used.
-    The function does not return until the URL responses, what can make the function run forever. if there is any problem with the URL being requested"""
+    Does not return until the URL responses, can make the function run forever.
+    If there is any problem with the URL being requested"""
     _not_got = True
     while _not_got:
         response = s.get(url)
@@ -27,26 +26,35 @@ def reqURL(s: requests.Session, url: str) -> requests.Response:
             time.sleep(retry_after)
     return response
 
-def reqDiscursos(deputado: int, s: requests.Session, idLegislatura: list = [], dataInicio: str = "", dataFim: str = "", ordenarPor: str = "dataHoraInicio", ordem: str = "ASC") -> list:
-    """Faz a requisção dos discursos de um determinado Deputado baseado no ID do Deputado"""
+
+def req_discursos(deputado: int,
+                  s: requests.Session,
+                  id_legislatura: list[str] | None = None,
+                  data_inicio: str = "",
+                  data_fim: str = "",
+                  ordenar_por: str = "dataHoraInicio",
+                  ordem: str = "ASC") -> list:
+    """Requisita os discursos de um Deputado baseado no ID do Deputado"""
+    if id_legislatura is None:
+        id_legislatura = []
     url_list = []
-    resps = []
+    resps: list[requests.Response] = []
     url_base = "https://dadosabertos.camara.leg.br/api/v2/deputados/{id}/discursos"
     url_list.append(url_base)
 
-    params = {}
+    params: dict[str, list[str] | str] = {}
 
-    if idLegislatura is not reqDiscursos.__defaults__[0]:
-        params["idLegislatura"] = [str(id) for id in idLegislatura]
+    if id_legislatura is not req_discursos.__defaults__[0]:
+        params["idLegislatura"] = [str(id) for id in id_legislatura]
 
-    if dataInicio is not reqDiscursos.__defaults__[1]:
-        params["dataInicio"] = dataInicio
+    if data_inicio is not req_discursos.__defaults__[1]:
+        params["dataInicio"] = data_inicio
 
-    if dataFim is not reqDiscursos.__defaults__[2]:
-        params["dataFim"] = dataFim
+    if data_fim is not req_discursos.__defaults__[2]:
+        params["dataFim"] = data_fim
 
-    if ordenarPor is not reqDiscursos.__defaults__[3]:
-        params["ordenarPor"] = ordenarPor
+    if ordenar_por is not req_discursos.__defaults__[3]:
+        params["ordenarPor"] = ordenar_por
 
     params["ordem"] = ordem
 
@@ -57,88 +65,121 @@ def reqDiscursos(deputado: int, s: requests.Session, idLegislatura: list = [], d
 
     url = url_id.format(id=deputado)
     i = 0
-    response = reqURL(s=s, url=url)
+    response = req_url(s=s, url=url)
     resps.append(response)
 
     while "next" in resps[i].links:
         url = resps[i].links["next"]["url"]
-        response = reqURL(s=s, url=url) # Colocar validação para ver se o sistema da câmara não está sobrecarregado, mesmo erro do próximo comentário
+        response = req_url(s=s, url=url)
         resps.append(response)
         i += 1
     lista_discursos = []
-    for i in resps:
+    for resp in resps:
         try:
-            lista_discursos.extend(list(map(new_auxiliar.Discurso, i.json()["dados"]))) # Tratar o fato de que pode haver corpos vazios
-        except:
+            lista_discursos.extend(list(map(new_auxiliar.Discurso,
+                                            resp.json()["dados"])))
+        except IndexError:  # Pode ser que esse não seja o erro correto
             pass
     return lista_discursos
 
-def reqMembros(idPartido: int, s: requests.Session, dataInicio: str = "", dataFim: str = "", idLegislatura: list = [], ordenarPor: str = "", ordem: str = "ASC") -> list:
-    """Faz as requisições dos discursos dos membros de um partido baseado no ID do partido"""
+
+def req_membros(id_partido: int,
+                s: requests.Session,
+                data_inicio: str = "",
+                data_fim: str = "",
+                id_legislatura: list[str] | None = None,
+                ordenar_por: str = "",
+                ordem: str = "ASC") -> list:
+    """Requisita os discursos dos membros de um partido com ID do partido"""
+    if id_legislatura is None:
+        id_legislatura = []
     url_list = []
     url_base = "https://dadosabertos.camara.leg.br/api/v2/partidos/{id}/membros"
     url_list.append(url_base)
-    params = {}
+    params: dict[str, list[str] | str] = {}
 
-    if dataInicio is not reqMembros.__defaults__[0]:
-        params["dataInicio"] = dataInicio
+    if data_inicio is not req_membros.__defaults__[0]:
+        params["dataInicio"] = data_inicio
 
-    if dataFim is not reqMembros.__defaults__[1]:
-        params["dataFim"] = dataFim
+    if data_fim is not req_membros.__defaults__[1]:
+        params["dataFim"] = data_fim
 
-    if idLegislatura is not reqMembros.__defaults__[2]:
-        params["idLegislatura"] = [str(id) for id in idLegislatura]
+    if id_legislatura is not req_membros.__defaults__[2]:
+        params["idLegislatura"] = [str(id) for id in id_legislatura]
 
-    if ordenarPor is not reqMembros.__defaults__[3]:
-        params["ordenarPor"] = ordenarPor
-    
+    if ordenar_por is not req_membros.__defaults__[3]:
+        params["ordenarPor"] = ordenar_por
+
     params["ordem"] = ordem
     query = urllib.parse.urlencode(params, doseq=True)
     url_list.append("?")
     url_list.append(query)
     url_id = ''.join(url_list)
-    url = url_id.format(id = idPartido)
-    i = 0
-    response = reqURL(s=s, url=url)
+    url = url_id.format(id=id_partido)
+    # i = 0
+    response = req_url(s=s, url=url)
 
-    # Não é necessário nesse momento a realização da checagem dos valores next, isto acontece pelo fato de que este endpoint não está utiliizando o valor 'itens'
-    # Por isso não é necessário realizar toda esta lógica response já possui todas as respostas necessária
+    # Não é necessário nesse momento a realização da checagem dos valores next
+    # acontece pelo fato de que este endpoint não está utiliizando 'itens'
+    # Por isso não é necessário realizar toda esta lógica,
+    # response já possui todas as respostas necessária
 
-    """while "next" in resps[i].links:
-        url = resps[i].links["next"]["url"]
-        response = reqURL(s=s, url=url)
-        resps.append(response)
-        i += 1"""
-    lista_deputados = list(map(new_auxiliar.Deputado, response.json()["dados"]))
+    # while "next" in resps[i].links:
+    #     url = resps[i].links["next"]["url"]
+    #     response = reqURL(s=s, url=url)
+    #     resps.append(response)
+    #     i += 1"""
+    lista_deputados = list(map(new_auxiliar.Deputado,
+                               response.json()["dados"]))
 
     lista_discursos_deputados = []
     for deputado in lista_deputados:
-        lista_discursos_deputados.append({deputado :reqDiscursos(deputado=deputado.Id, s=s, idLegislatura=idLegislatura, dataInicio=dataInicio, dataFim=dataFim, ordenarPor=ordenarPor, ordem=ordem)})
-        #time.sleep(5)
+        lista_discursos_deputados.append({
+            deputado:
+            req_discursos(deputado=deputado.Id,
+                          s=s,
+                          id_legislatura=id_legislatura,
+                          data_inicio=data_inicio,
+                          data_fim=data_fim,
+                          ordenar_por=ordenar_por,
+                          ordem=ordem)})
     return lista_discursos_deputados
 
-def reqPartidos(siglas: list = [], dataInicio: str = "", dataFim: str = "", idLegislatura: list = [], ordem: str = "ASC", ordenarPor: str = "sigla", ordenarPorDiscursos: str = ""):
-    "Faz a requisição dos discursos dos membros de um ou mais partidos, baseando-se nas siglas dos Partidos"
+
+def req_partidos(siglas: list[str] | None = None,
+                 data_inicio: str = "",
+                 data_fim: str = "",
+                 id_legislatura: list[str] | None = None,
+                 ordem: str = "ASC",
+                 ordenar_por: str = "sigla",
+                 ordenar_por_discursos: str = ""):
+    '''Faz a requisição dos discursos dos membros de um ou mais partidos
+    baseando-se nas siglas dos Partidos'''
+
+    if siglas is None:
+        siglas = []
+    if id_legislatura is None:
+        id_legislatura = []
     url_list = []
     resps = []
     url_base = "https://dadosabertos.camara.leg.br/api/v2/partidos"
     url_list.append(url_base)
 
-    params = {}
+    params: dict[str, list[str] | str] = {}
 
-    if siglas is not reqPartidos.__defaults__[0]:
+    if siglas is not req_partidos.__defaults__[0]:
         params["sigla"] = siglas
 
-    if dataInicio is not reqPartidos.__defaults__[1]:
-        params["dataInicio"] = dataInicio
+    if data_inicio is not req_partidos.__defaults__[1]:
+        params["dataInicio"] = data_inicio
 
-    if dataFim is not reqPartidos.__defaults__[2]:
-        params["dataFim"] = dataFim
+    if data_fim is not req_partidos.__defaults__[2]:
+        params["dataFim"] = data_fim
 
-    if idLegislatura is not reqPartidos.__defaults__[3]:
-        params["idLegislatura"] = [str(id) for id in idLegislatura]
+    if id_legislatura is not req_partidos.__defaults__[3]:
+        params["idLegislatura"] = [str(id) for id in id_legislatura]
 
-    params["ordenarPor"] = ordenarPor
+    params["ordenarPor"] = ordenar_por
     params["ordem"] = ordem
     query = urllib.parse.urlencode(params, doseq=True)
     url_list.append("?")
@@ -151,13 +192,13 @@ def reqPartidos(siglas: list = [], dataInicio: str = "", dataFim: str = "", idLe
     s.headers.update(headers)
 
     # Criação do primeiro request de partido
-    response = reqURL(s=s, url=url)
+    response = req_url(s=s, url=url)
     resps.append(response)
     i = 0
 
     while "next" in resps[i].links:
         url = resps[i].links["next"]["url"]
-        response = reqURL(s=s, url=url)
+        response = req_url(s=s, url=url)
         resps.append(response)
         i += 1
 
@@ -166,34 +207,67 @@ def reqPartidos(siglas: list = [], dataInicio: str = "", dataFim: str = "", idLe
         partidos.extend(list(map(new_auxiliar.Partido, resp.json()["dados"])))
     lista_discursos_deputados_partidos = {}
     for partido in partidos:
-        lista_discursos_deputados_partidos[partido] = reqMembros(idPartido=partido.Id, s=s, dataInicio=dataInicio, dataFim=dataFim, idLegislatura=idLegislatura, ordenarPor=ordenarPorDiscursos, ordem=ordem)
+        lista_discursos_deputados_partidos[partido] = req_membros(
+            id_partido=partido.Id,
+            s=s,
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            id_legislatura=id_legislatura,
+            ordenar_por=ordenar_por_discursos,
+            ordem=ordem)
     return lista_discursos_deputados_partidos
 
-def partidoToDataFrame(estrutura: dict) -> pd.DataFrame:
-    """Transforma a estrutura das requisições de partidos no formato de um CSV onde cada linha é um discurso"""
+
+def partido_to_dataframe(estrutura: dict) -> pd.DataFrame:
+    """Transforma a estrutura das requisições de partidos para um CSV,
+    onde cada linha é um discurso"""
     list_df = []
     for partido in estrutura:
         for dict_deputado in estrutura[partido]:
             for deputado in dict_deputado:
                 for discurso in dict_deputado[deputado]:
-                    linha = partido.to_list() + deputado.to_list() + discurso.to_list()
+                    partido_list = partido.to_list()
+                    deputado_list = deputado.to_list()
+                    discurso_list = discurso.to_list()
+                    linha = partido_list + deputado_list + discurso_list
                     list_df.append(linha)
-    
-    columns = new_auxiliar.Partido.get_variables() + new_auxiliar.Deputado.get_variables() + new_auxiliar.Discurso.get_variables()
+
+    columns = new_auxiliar.Partido.get_variables() + \
+        new_auxiliar.Deputado.get_variables() + \
+        new_auxiliar.Discurso.get_variables()
     df = pd.DataFrame(data=list_df, columns=columns)
-    df = df.drop_duplicates(subset=["dataHoraFim", "dataHoraInicio", "faseVento.dataHoraFim", "faseEvento.dataHoraInicio", "faseEvento.titulo", "keywords", "sumario", "tipoDiscurso", "transcricao", "uriEvento", "urlAudio", "urlTexto", "urlVideo"])
-    # Necessário o drop_duplicates pelo fato de que eu não sei o por que existem alguns deputados que estão com versões iguais, a única coisa diferente é o nome, onde um é "DEPUTADO MAIÚSCULO" e o outro é "Deputado Maiúsculo"
+    df = df.drop_duplicates(subset=["dataHoraFim",
+                                    "dataHoraInicio",
+                                    "faseVento.dataHoraFim",
+                                    "faseEvento.dataHoraInicio",
+                                    "faseEvento.titulo",
+                                    "keywords",
+                                    "sumario",
+                                    "tipoDiscurso",
+                                    "transcricao",
+                                    "uriEvento",
+                                    "urlAudio",
+                                    "urlTexto",
+                                    "urlVideo"])
+    # drop_duplicates deve ser feito, existem deputados repetidos,
+    # a única diferença entre eles é o nome,
+    # onde um é maiúsculo e o outro minúsculo
     return df
 
+
 def main():
+    '''Testing function of the module'''
     init_time = time.time()
-    requisicoes = reqPartidos(siglas=["PL"], dataInicio="2019-06-02", dataFim="2019-07-02")
+    requisicoes = req_partidos(siglas=["PL"],
+                               data_inicio="2019-06-02",
+                               data_fim="2019-07-02")
     end_time = time.time()
-    #print(requisicoes)
+    # print(requisicoes)
     print(end_time - init_time)
-    df = partidoToDataFrame(requisicoes)
+    df = partido_to_dataframe(requisicoes)
     print(df.shape)
     df.to_csv("discursos_PL.csv")
+
 
 if __name__ == "__main__":
     main()

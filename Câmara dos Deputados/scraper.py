@@ -1,29 +1,36 @@
-import scrap_discursos as sd
+'''This module shows an example on how the extractors works'''
 import pathlib
 import time
+import scrap_discursos as sd
 
-"""Com a implementação atual, a pasta onde os arquivos serão armazenados seré criada na pasta onde o script estã sendo executado e consequentemente os discursos serão armazenados
-Isto pode gerar sérios problemas dependendo do ambinte executado"""
+
 def main():
+    '''A example of the topic extraction made
+    This implementation creates the speeches files on the running folder.
+    This can be a problem depending on the ambient of execution.'''
     partidos = ["NOVO"]
-    dataInicio = "2022-01-01"
-    dataFim = "2022-12-31"
+    data_inicio = "2022-01-01"
+    data_fim = "2022-12-31"
 
     path_root = pathlib.Path("./discursos/legis_56/p_novo/2022/")
     path_root.mkdir(parents=True, exist_ok=True)
 
     init_time = time.time()
-    requisicoes = sd.reqPartidos(siglas=partidos, dataInicio=dataInicio, dataFim=dataFim)
+    requisicoes = sd.req_partidos(siglas=partidos,
+                                  data_inicio=data_inicio,
+                                  data_fim=data_fim)
     end_time = time.time()
     print(end_time - init_time)
-    df = sd.partidoToDataFrame(requisicoes)
+    df = sd.partido_to_dataframe(requisicoes)
     siglas = df["sigla"].unique().tolist()
 
     for partido in siglas:
         mask_partido = df["sigla"] == partido
         df_partido = df[mask_partido]
         df_partido = df_partido.reset_index()
-        df_partido.to_csv(pathlib.Path.joinpath(path_root, f"discursos_{partido}.csv"))
+        df_partido.to_csv(pathlib.Path.joinpath(path_root,
+                                                f"discursos_{partido}.csv"))
+
 
 if __name__ == "__main__":
     main()
