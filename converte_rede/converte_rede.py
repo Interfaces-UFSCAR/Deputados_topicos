@@ -56,7 +56,8 @@ class Converter():
         df_edgelist = pd.DataFrame(edgelist)
         df_edgelist.columns = pd.Index(["From", "To"])
 
-        df_edgelist = df_edgelist.groupby(df_edgelist.columns.tolist(), as_index=False).size()
+        df_edgelist = df_edgelist.groupby(df_edgelist.columns.tolist(),
+                                          as_index=False).size()
         # Agrupates the equal elements(edges) and
         # Creates a column with the repetition counting
         # Prepare the code for creating a weighted graph
