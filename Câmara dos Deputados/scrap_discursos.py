@@ -12,6 +12,27 @@ import pandas as pd
 import new_auxiliar
 
 
+def create_params(id_legislatura,
+                  data_inicio,
+                  data_fim,
+                  ordenar_por, ordem) -> dict[str, str | list[str]]:
+    """Creates the dictionary of parameters for the request.
+
+    Makes it passable between calls."""
+    params: dict[str, str | list[str]] = {}
+    if id_legislatura != []:
+        params['idLegislatura'] = [str(legislatura)
+                                   for legislatura in id_legislatura]
+    if data_inicio != "":
+        params["dataInicio"] = data_inicio
+    if data_fim != "":
+        params["dataFim"] = data_fim
+    if ordenar_por != "":
+        params["ordenarPor"] = ordenar_por
+    params["ordem"] = ordem
+    return params
+
+
 def req_url(s: requests.Session, url: str) -> requests.Response:
     """Resquests a certain URL using the given Session that is being used.
     Does not return until the URL responses, can make the function run forever.
@@ -29,34 +50,15 @@ def req_url(s: requests.Session, url: str) -> requests.Response:
 
 def req_discursos(deputado: int,
                   s: requests.Session,
-                  id_legislatura: list[str] | None = None,
-                  data_inicio: str = "",
-                  data_fim: str = "",
-                  ordenar_por: str = "dataHoraInicio",
-                  ordem: str = "ASC") -> list:
+                  params: dict[str, str | list[str]],
+                  ordenar_por: str = "dataHoraInicio") -> list:
     """Requisita os discursos de um Deputado baseado no ID do Deputado"""
-    if id_legislatura is None:
-        id_legislatura = []
     url_list = []
     resps: list[requests.Response] = []
     url_base = "https://dadosabertos.camara.leg.br/api/v2/deputados/{id}/discursos"
     url_list.append(url_base)
 
-    params: dict[str, list[str] | str] = {}
-
-    if id_legislatura is not req_discursos.__defaults__[0]:
-        params["idLegislatura"] = [str(id) for id in id_legislatura]
-
-    if data_inicio is not req_discursos.__defaults__[1]:
-        params["dataInicio"] = data_inicio
-
-    if data_fim is not req_discursos.__defaults__[2]:
-        params["dataFim"] = data_fim
-
-    if ordenar_por is not req_discursos.__defaults__[3]:
-        params["ordenarPor"] = ordenar_por
-
-    params["ordem"] = ordem
+    params["ordenarPor"] = ordenar_por
 
     query = urllib.parse.urlencode(params, doseq=True)
     url_list.append("?")
@@ -85,32 +87,17 @@ def req_discursos(deputado: int,
 
 def req_membros(id_partido: int,
                 s: requests.Session,
-                data_inicio: str = "",
-                data_fim: str = "",
-                id_legislatura: list[str] | None = None,
-                ordenar_por: str = "",
-                ordem: str = "ASC") -> list:
+                params: dict[str, str | list[str]],
+                ordenar_por: str = "",) -> list:
     """Requisita os discursos dos membros de um partido com ID do partido"""
-    if id_legislatura is None:
-        id_legislatura = []
     url_list = []
     url_base = "https://dadosabertos.camara.leg.br/api/v2/partidos/{id}/membros"
     url_list.append(url_base)
-    params: dict[str, list[str] | str] = {}
 
-    if data_inicio is not req_membros.__defaults__[0]:
-        params["dataInicio"] = data_inicio
+    params["ordenarPor"] = ordenar_por  # Troca pois não existe "sigla"
+    # Troca na cópia e não na versão original
+    # Necessário até pelo fato de que as chamadas são feitas em profundidade.
 
-    if data_fim is not req_membros.__defaults__[1]:
-        params["dataFim"] = data_fim
-
-    if id_legislatura is not req_membros.__defaults__[2]:
-        params["idLegislatura"] = [str(id) for id in id_legislatura]
-
-    if ordenar_por is not req_membros.__defaults__[3]:
-        params["ordenarPor"] = ordenar_por
-
-    params["ordem"] = ordem
     query = urllib.parse.urlencode(params, doseq=True)
     url_list.append("?")
     url_list.append(query)
@@ -138,11 +125,8 @@ def req_membros(id_partido: int,
             deputado:
             req_discursos(deputado=deputado.Id,
                           s=s,
-                          id_legislatura=id_legislatura,
-                          data_inicio=data_inicio,
-                          data_fim=data_fim,
-                          ordenar_por=ordenar_por,
-                          ordem=ordem)})
+                          params=params.copy(),
+                          ordenar_por=ordenar_por)})
     return lista_discursos_deputados
 
 
@@ -165,22 +149,13 @@ def req_partidos(siglas: list[str] | None = None,
     url_base = "https://dadosabertos.camara.leg.br/api/v2/partidos"
     url_list.append(url_base)
 
-    params: dict[str, list[str] | str] = {}
+    params: dict[str, str | list[str]] = create_params(
+        id_legislatura=id_legislatura,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        ordenar_por=ordenar_por,
+        ordem=ordem)
 
-    if siglas is not req_partidos.__defaults__[0]:
-        params["sigla"] = siglas
-
-    if data_inicio is not req_partidos.__defaults__[1]:
-        params["dataInicio"] = data_inicio
-
-    if data_fim is not req_partidos.__defaults__[2]:
-        params["dataFim"] = data_fim
-
-    if id_legislatura is not req_partidos.__defaults__[3]:
-        params["idLegislatura"] = [str(id) for id in id_legislatura]
-
-    params["ordenarPor"] = ordenar_por
-    params["ordem"] = ordem
     query = urllib.parse.urlencode(params, doseq=True)
     url_list.append("?")
     url_list.append(query)
@@ -210,11 +185,8 @@ def req_partidos(siglas: list[str] | None = None,
         lista_discursos_deputados_partidos[partido] = req_membros(
             id_partido=partido.Id,
             s=s,
-            data_inicio=data_inicio,
-            data_fim=data_fim,
-            id_legislatura=id_legislatura,
-            ordenar_por=ordenar_por_discursos,
-            ordem=ordem)
+            params=params.copy(),  # Evitates that that calls change the dict
+            ordenar_por=ordenar_por_discursos)
     return lista_discursos_deputados_partidos
 
 
