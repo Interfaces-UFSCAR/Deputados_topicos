@@ -59,6 +59,10 @@ class Extractor():
         '''Vectorizes data'''
         raise NotImplementedError()
 
+    def topic_extraction(self, n_words):
+        """Extracts the topics"""
+        raise NotImplementedError()
+
 
 class BowLda(Extractor):
     '''This class implements Bag Of Words with LDA.
