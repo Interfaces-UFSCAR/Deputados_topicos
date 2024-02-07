@@ -16,11 +16,8 @@ The classes to be used in this module are:
 '''
 
 import pathlib
-import string
 import pandas as pd
 import spacy
-from nltk.corpus import stopwords
-import nltk
 import sklearn.feature_extraction.text as sklearntext
 import numpy as np
 from sklearn.decomposition import LatentDirichletAllocation
@@ -28,6 +25,7 @@ from sklearn.decomposition import LatentDirichletAllocation
 import pbg
 
 from preprocess import preprocess
+import processer
 
 
 class Extractor():
@@ -37,93 +35,25 @@ class Extractor():
     This class only implements preprocessing text methods
     once those are common to both classes."""
     def __init__(self, discursos, partidos, n_components) -> None:
-        stop_words_path = pathlib.Path("./stop_words.txt")
         self.discursos = [preprocess(discurso) for discurso in discursos]
         self.n_components = n_components
-        stop_words = set(stopwords.words("portuguese"))
-        stop_words.update(stop_words_path.read_text("utf-8").splitlines())
-        self.stop_words = stop_words
         self.treated = False
         self.partidos = partidos
         self.treated_discursos: list[list[str]]
         self.nlp: spacy.language.Language
+        self.processer = processer.Processer(self.discursos)
 
-    def process_text(self,
-                     allowed_postags: list[str] | None = None) -> None:
-        """Processes the text before it can enter the process of vectorizing.
-        Parameters:
-            allowed_postags:Says which type of postags are permitted.
-            If ommitted all post tags are used.
-
-            The types are:
-            * Noun (NOUN),
-            * Adjective (ADJ),
-            * Adverb (ADV),
-            * Verb (VERB),
-            * Punctuation (PUNCT)
-        Returns:
-            None. To get threated discursos use get_processed_text method"""
-        if self.treated:
-            return
-        self.nlp = spacy.load("pt_core_news_lg")
-        lemmatized_discursos = self.lemmatization(
+    def process_text(self, allowed_postags: list[str] | None = None) -> None:
+        """Processes the text on the Processer class"""
+        treated_discursos = self.processer.process_text(
             allowed_postags=allowed_postags)
-        discursos_lower = [[discurso.lower()
-                            for discurso in discursos]
-                           for discursos in lemmatized_discursos]
-        discursos_tokenized = [[nltk.word_tokenize(discurso)
-                                for discurso in discursos]
-                               for discursos in discursos_lower]
-        treated_discursos = [self.__remove_stop_words_punct(discursos)
-                             for discursos in discursos_tokenized]
         self.treated_discursos = treated_discursos
-        self.treated = True  # Esta implementação ainda está ineficiente
-        # não contempla chamar as funções de modo separado
 
     def get_processed_text(self):
         """Função para receber o texto pré-processado"""
         if self.treated:
             return self.treated_discursos
         return None
-
-    def lemmatization(self, allowed_postags):
-        '''Makes the lemmatization on the text for all parties.'''
-        lemmatized_discursos = [self.__lemmatization(
-            discursos,
-            self.nlp,
-            allowed_postags=allowed_postags)
-            for discursos in self.discursos]
-        return lemmatized_discursos
-
-    def __lemmatization(self,
-                        texts: list[str],
-                        nlp,
-                        allowed_postags: list[str] | None = None):
-        if allowed_postags is None:
-            allowed_postags = ["NOUN", "ADJ", "VERB", "ADV"]
-        texts_out = []
-        for sent in texts:
-            doc = nlp(sent)
-            texts_out.append(" ".join([token.lemma_
-                                       if token.lemma_ not in ["-PRON-"]
-                                       else ""
-                                       for token in doc
-                                       if token.pos_ in allowed_postags]))
-        return texts_out
-
-    def __remove_stop_words_punct(self,
-                                  discursos: list[list[str]]) -> list[str]:
-
-        novos_discursos = []
-        for discurso in discursos:
-            novo_discurso = []
-            for token in discurso:
-                if ((token not in string.punctuation)
-                        and (token not in self.stop_words)):
-                    novo_discurso.append(token)
-            novo_discurso_str = " ".join(novo_discurso)
-            novos_discursos.append(novo_discurso_str)
-        return novos_discursos
 
     def data_vectorizer(self):
         '''Vectorizes data'''
